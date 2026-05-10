@@ -45,8 +45,9 @@ RUN ldconfig
 # Copy binary
 COPY --from=builder /app/tg-autoresponder /app/tg-autoresponder
 
+# Copy pre-authorized session
+COPY tdlib_session/ /app/tdlib_session/
+
 WORKDIR /app
-# tdlib_session will be stored in a volume mount
-VOLUME /app/tdlib_session
 ENV LD_LIBRARY_PATH=/usr/local/lib
 CMD ["./tg-autoresponder"]

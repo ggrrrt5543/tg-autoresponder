@@ -3,4 +3,3 @@ build/
 *.dll
 *.o
 config.json
-tdlib_session/
