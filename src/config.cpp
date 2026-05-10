@@ -35,12 +35,6 @@ void ConfigManager::clear_chats() {
     save();
 }
 
-void ConfigManager::set_reply_chat(int64_t chat_id) {
-    std::lock_guard<std::mutex> lock(mtx_);
-    config_.reply_chat = chat_id;
-    save();
-}
-
 void ConfigManager::set_answer(const std::string& text) {
     std::lock_guard<std::mutex> lock(mtx_);
     config_.answer_text = text;
@@ -67,7 +61,6 @@ void ConfigManager::load() {
         config_.answer_text = j.value("answer_text", "");
         config_.limit_min = j.value("limit_min", 0.0);
         config_.limit_max = j.value("limit_max", 0.0);
-        config_.reply_chat = j.value("reply_chat", (int64_t)0);
         config_.monitored_chats.clear();
         if (j.contains("monitored_chats")) {
             for (auto& v : j["monitored_chats"])
@@ -80,12 +73,12 @@ void ConfigManager::load() {
 }
 
 void ConfigManager::save() {
+    // NOTE: called with lock already held
     json j;
     j["bot_active"] = config_.bot_active;
     j["answer_text"] = config_.answer_text;
     j["limit_min"] = config_.limit_min;
     j["limit_max"] = config_.limit_max;
-    j["reply_chat"] = config_.reply_chat;
     j["monitored_chats"] = config_.monitored_chats;
 
     std::ofstream f(filepath_);
