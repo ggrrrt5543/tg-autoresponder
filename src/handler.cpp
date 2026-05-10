@@ -177,7 +177,9 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
     }
 
     // Auto-reply logic:
-    // React to all messages in monitored chats EXCEPT our own
+    // This is a channel comments group — orders come as linked posts from channel
+    // sender_id < 0 = from channel (linked post), sender_id > 0 = regular user comment
+    // Only react to channel posts, ignore user comments
     auto cfg = cm.get();
     if (!cfg.bot_active || cfg.answer_text.empty()) return false;
     if (cfg.limit_min == 0.0 && cfg.limit_max == 0.0) return false;
@@ -188,14 +190,14 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
         if (id == chat_id) { monitored = true; break; }
     if (!monitored) return false;
 
-    // Ignore our own messages in monitored chats
-    if (sender_id == my_id) return false;
+    // Only react to channel posts (sender_id is negative = channel)
+    // Ignore regular users (sender_id positive)
+    if (sender_id >= 0) return false;
 
     auto amount = extract_amount(text);
     if (!amount) return false;
 
     if (in_range(*amount, cfg.limit_min, cfg.limit_max)) {
-        // Determine where to send reply
         int64_t target_chat = (cfg.reply_chat != 0) ? cfg.reply_chat : chat_id;
         send(target_chat, msg_id, cfg.answer_text);  // SEND FIRST
         std::cout << "[bot] MATCH " << *amount << " -> reply in " << target_chat << "\n";
