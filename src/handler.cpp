@@ -24,15 +24,16 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
         // /set — show all commands
         if (text == "/set") {
             std::string msg =
-                "\xf0\x9f\x93\x8b \xd0\x9a\xd0\xbe\xd0\xbc\xd0\xb0\xd0\xbd\xd0\xb4\xd1\x8b:\n\n"
-                "\xf0\x9f\x9f\xa2 /start_bot \xe2\x80\x94 \xd0\xb2\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb8\xd1\x82\xd1\x8c\n"
-                "\xf0\x9f\x94\xb4 /stop_bot \xe2\x80\x94 \xd0\xb2\xd1\x8b\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb8\xd1\x82\xd1\x8c\n"
-                "\xf0\x9f\x93\x8a /status \xe2\x80\x94 \xd1\x81\xd1\x82\xd0\xb0\xd1\x82\xd1\x83\xd1\x81\n"
-                "\xf0\x9f\x92\xac /upchat <id> \xe2\x80\x94 \xd0\xb4\xd0\xbe\xd0\xb1\xd0\xb0\xd0\xb2\xd0\xb8\xd1\x82\xd1\x8c \xd1\x87\xd0\xb0\xd1\x82\n"
-                "\xf0\x9f\x97\x91 /clear \xe2\x80\x94 \xd0\xbe\xd1\x87\xd0\xb8\xd1\x81\xd1\x82\xd0\xb8\xd1\x82\xd1\x8c \xd1\x87\xd0\xb0\xd1\x82\xd1\x8b\n"
-                "\xe2\x9c\x8f\xef\xb8\x8f /ans_chat <\xd1\x82\xd0\xb5\xd0\xba\xd1\x81\xd1\x82> \xe2\x80\x94 \xd0\xbe\xd1\x82\xd0\xb2\xd0\xb5\xd1\x82\n"
-                "\xf0\x9f\x93\x8f /limit <min> <max> \xe2\x80\x94 \xd0\xbb\xd0\xb8\xd0\xbc\xd0\xb8\xd1\x82\xd1\x8b\n"
-                "\xf0\x9f\x93\x8b /set \xe2\x80\x94 \xd1\x8d\xd1\x82\xd0\xbe \xd0\xbc\xd0\xb5\xd0\xbd\xd1\x8e";
+                "\xf0\x9f\x93\x8b Commands:\n\n"
+                "\xf0\x9f\x9f\xa2 /start_bot \xe2\x80\x94 start\n"
+                "\xf0\x9f\x94\xb4 /stop_bot \xe2\x80\x94 stop\n"
+                "\xf0\x9f\x93\x8a /status \xe2\x80\x94 status + perf\n"
+                "\xf0\x9f\x92\xac /upchat <id> \xe2\x80\x94 add source channel\n"
+                "\xf0\x9f\x93\xa9 /reply_chat <id> \xe2\x80\x94 set reply target\n"
+                "\xf0\x9f\x97\x91 /clear \xe2\x80\x94 clear channels\n"
+                "\xe2\x9c\x8f\xef\xb8\x8f /ans_chat <text> \xe2\x80\x94 set answer\n"
+                "\xf0\x9f\x93\x8f /limit <min> <max> \xe2\x80\x94 limits\n"
+                "\xf0\x9f\x93\x8b /set \xe2\x80\x94 this menu";
             send(chat_id, 0, msg);
             return true;
         }
@@ -82,8 +83,11 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
             // Limits
             o << "\xf0\x9f\x94\xa7 Limits: " << cfg.limit_min << " \xe2\x80\x94 " << cfg.limit_max << "\n";
 
-            // Answer
-            o << "\xf0\x9f\x8e\xaf Mode: REPLY\n";
+            // Reply target
+            o << "\xf0\x9f\x93\xa9 Reply to: " << (cfg.reply_chat != 0 ? std::to_string(cfg.reply_chat) : "same chat") << "\n";
+
+            // Mode
+            o << "\xf0\x9f\x8e\xaf Mode: CHANNEL ONLY\n";
 
             // Performance
             o << "\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\xe2\x94\x81\n";
@@ -155,30 +159,51 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
             }
             return true;
         }
+
+        // /reply_chat <id> — set chat where to send reply
+        if (starts_with(text, "/reply_chat ")) {
+            try {
+                int64_t id = std::stoll(text.substr(12));
+                cm.set_reply_chat(id);
+                std::ostringstream o;
+                o << "\xe2\x9c\x85 Reply chat: " << id;
+                send(chat_id, 0, o.str());
+                std::cout << "[bot] Reply chat: " << id << "\n";
+            } catch (...) {
+                send(chat_id, 0, "\xe2\x9d\x8c Invalid chat_id");
+            }
+            return true;
+        }
     }
 
-    // Auto-reply (with reply to the original message)
+    // Auto-reply logic:
+    // - Only react to messages from channels (sender_id == chat_id means channel post)
+    // - Or forwarded from channel (sender_id is negative = channel)
+    // - Send reply to reply_chat if set, otherwise same chat
     auto cfg = cm.get();
     if (!cfg.bot_active || cfg.answer_text.empty()) return false;
     if (cfg.limit_min == 0.0 && cfg.limit_max == 0.0) return false;
 
+    // Check if this chat is monitored
     bool monitored = false;
     for (auto id : cfg.monitored_chats)
         if (id == chat_id) { monitored = true; break; }
-    if (!monitored) {
-        return false;
-    }
+    if (!monitored) return false;
+
+    // Only react to channel posts (sender is a chat, not a user)
+    // In TDLib: messageSenderChat means it's from a channel/group identity
+    // sender_id will be negative (channel id) or equal to chat_id
+    bool is_channel_post = (sender_id == chat_id) || (sender_id < 0 && sender_id != my_id);
+    if (!is_channel_post) return false;  // ignore regular users
 
     auto amount = extract_amount(text);
-    if (!amount) {
-        return false;
-    }
-
-    std::cout << "[check] amount=" << *amount << " limits=[" << cfg.limit_min << "," << cfg.limit_max << "]\n";
+    if (!amount) return false;
 
     if (in_range(*amount, cfg.limit_min, cfg.limit_max)) {
-        send(chat_id, msg_id, cfg.answer_text);  // SEND FIRST, log after
-        std::cout << "[bot] MATCH " << *amount << " in chat " << chat_id << "\n";
+        // Determine where to send reply
+        int64_t target_chat = (cfg.reply_chat != 0) ? cfg.reply_chat : chat_id;
+        send(target_chat, msg_id, cfg.answer_text);  // SEND FIRST
+        std::cout << "[bot] MATCH " << *amount << " -> reply in " << target_chat << "\n";
         return true;
     }
     return false;
