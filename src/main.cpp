@@ -66,9 +66,31 @@ static bool load_tdjson() {
 static void* client = nullptr;
 static int64_t my_user_id = 0;
 static std::atomic<uint64_t> request_id{0};
-static std::atomic<int64_t> last_ping_ms{0};  // last response ping in ms
+static std::atomic<int64_t> last_ping_ms{0};
+
+// Performance stats
+static std::atomic<int64_t> best_ping_ms{9999};
+static std::atomic<int64_t> total_ping_ms{0};
+static std::atomic<int64_t> ping_count{0};
+
+PerfStats get_perf_stats() {
+    PerfStats s;
+    s.last = last_ping_ms.load();
+    s.best = best_ping_ms.load();
+    s.count = ping_count.load();
+    s.avg = s.count > 0 ? (double)total_ping_ms.load() / s.count : 0.0;
+    return s;
+}
 
 int64_t get_last_ping_ms() { return last_ping_ms.load(); }
+
+static void record_ping(int64_t ms) {
+    last_ping_ms.store(ms);
+    total_ping_ms.fetch_add(ms);
+    ping_count.fetch_add(1);
+    int64_t cur_best = best_ping_ms.load();
+    while (ms < cur_best && !best_ping_ms.compare_exchange_weak(cur_best, ms));
+}
 
 static uint64_t next_id() { return ++request_id; }
 
@@ -253,7 +275,7 @@ static void process_update(const json& upd) {
             send_message(cid, reply_id, reply_text);
             auto t_end = std::chrono::steady_clock::now();
             auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
-            last_ping_ms.store(ms);
+            record_ping(ms);
             std::cout << "[ping] " << ms << "ms\n";
         };
 
