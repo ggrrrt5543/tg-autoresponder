@@ -177,7 +177,9 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
     }
 
     // Auto-reply logic:
-    // React to all messages in monitored chats EXCEPT our own
+    // - Only react to messages from channels (sender_id == chat_id means channel post)
+    // - Or forwarded from channel (sender_id is negative = channel)
+    // - Send reply to reply_chat if set, otherwise same chat
     auto cfg = cm.get();
     if (!cfg.bot_active || cfg.answer_text.empty()) return false;
     if (cfg.limit_min == 0.0 && cfg.limit_max == 0.0) return false;
@@ -188,8 +190,11 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
         if (id == chat_id) { monitored = true; break; }
     if (!monitored) return false;
 
-    // Ignore our own messages in monitored chats
-    if (sender_id == my_id) return false;
+    // Only react to channel posts (sender is a chat, not a user)
+    // In TDLib: messageSenderChat means it's from a channel/group identity
+    // sender_id will be negative (channel id) or equal to chat_id
+    bool is_channel_post = (sender_id == chat_id) || (sender_id < 0 && sender_id != my_id);
+    if (!is_channel_post) return false;  // ignore regular users
 
     auto amount = extract_amount(text);
     if (!amount) return false;
