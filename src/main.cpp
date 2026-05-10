@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <cstdint>
+#include <cstdlib>
 #include <atomic>
 #include <chrono>
 
@@ -103,29 +104,52 @@ static void send_message(int64_t chat_id, int64_t reply_to_msg_id, const std::st
     td_send(req);
 }
 
+// --- Helper: get value from env var or stdin ---
+static std::string get_input(const char* env_name, const char* prompt) {
+    const char* env_val = std::getenv(env_name);
+    if (env_val && env_val[0] != '\0') {
+        std::cout << prompt << " [from env " << env_name << "]\n";
+        return std::string(env_val);
+    }
+    std::string val;
+    std::cout << prompt;
+    std::getline(std::cin, val);
+    return val;
+}
+
 // --- Auth flow ---
 static void process_auth_state(const json& state) {
     std::string type = state.value("@type", "");
 
     if (type == "authorizationStateWaitTdlibParameters") {
+        // api_id/api_hash from env or hardcoded
+        int api_id = 26779626;
+        std::string api_hash = "4d577c366366da914d6615417ab5ebdd";
+        const char* env_id = std::getenv("TG_API_ID");
+        const char* env_hash = std::getenv("TG_API_HASH");
+        if (env_id) api_id = std::atoi(env_id);
+        if (env_hash) api_hash = env_hash;
+
         json req = {
             {"@type", "setTdlibParameters"},
             {"database_directory", "tdlib_session"},
             {"use_message_database", true},
             {"use_secret_chats", false},
-            {"api_id", 26779626},           // <-- YOUR API_ID HERE
-            {"api_hash", "4d577c366366da914d6615417ab5ebdd"},        // <-- YOUR API_HASH HERE
+            {"api_id", api_id},
+            {"api_hash", api_hash},
             {"system_language_code", "ru"},
-            {"device_model", "PC"},
+            {"device_model", "Server"},
             {"application_version", "1.0"},
             {"@extra", next_id()}
         };
         td_send(req);
     }
     else if (type == "authorizationStateWaitPhoneNumber") {
-        std::string phone;
-        std::cout << "Phone number: ";
-        std::getline(std::cin, phone);
+        std::string phone = get_input("TG_PHONE", "Phone number: ");
+        if (phone.empty()) {
+            std::cerr << "[auth] No phone number! Set TG_PHONE env var.\n";
+            return;
+        }
         json req = {
             {"@type", "setAuthenticationPhoneNumber"},
             {"phone_number", phone},
@@ -134,9 +158,11 @@ static void process_auth_state(const json& state) {
         td_send(req);
     }
     else if (type == "authorizationStateWaitCode") {
-        std::string code;
-        std::cout << "Auth code: ";
-        std::getline(std::cin, code);
+        std::string code = get_input("TG_CODE", "Auth code: ");
+        if (code.empty()) {
+            std::cerr << "[auth] No code! Set TG_CODE env var and restart.\n";
+            return;
+        }
         json req = {
             {"@type", "checkAuthenticationCode"},
             {"code", code},
@@ -145,9 +171,11 @@ static void process_auth_state(const json& state) {
         td_send(req);
     }
     else if (type == "authorizationStateWaitPassword") {
-        std::string pass;
-        std::cout << "2FA password: ";
-        std::getline(std::cin, pass);
+        std::string pass = get_input("TG_2FA", "2FA password: ");
+        if (pass.empty()) {
+            std::cerr << "[auth] No 2FA password! Set TG_2FA env var.\n";
+            return;
+        }
         json req = {
             {"@type", "checkAuthenticationPassword"},
             {"password", pass},

@@ -1,0 +1,9 @@
+{
+  "answer_text": "Я",
+  "bot_active": true,
+  "limit_max": 200.0,
+  "limit_min": 0.0,
+  "monitored_chats": [
+    -1002873610932
+  ]
+}
