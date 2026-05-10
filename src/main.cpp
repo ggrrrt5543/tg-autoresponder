@@ -284,9 +284,9 @@ int main() {
 
     std::cout << "[main] Listening for updates...\n";
 
-    // Ultra-fast event loop: 10ms receive timeout
+    // Ultra-fast event loop: 1ms receive timeout for minimum latency
     while (true) {
-        const char* result = fn_receive(client, 0.01);
+        const char* result = fn_receive(client, 0.001);
         if (!result) continue;
 
         try {

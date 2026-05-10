@@ -22,7 +22,7 @@ RUN ls -la /usr/local/lib/libtd*
 WORKDIR /app
 COPY src/ src/
 
-RUN g++ -std=c++17 -O2 \
+RUN g++ -std=c++17 -O3 -march=native \
     -o tg-autoresponder \
     src/main.cpp src/config.cpp src/handler.cpp src/utils.cpp \
     -Isrc -ldl -lpthread

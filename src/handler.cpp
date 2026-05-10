@@ -153,21 +153,19 @@ bool handle_message(int64_t chat_id, int64_t msg_id, int64_t sender_id, int64_t 
     for (auto id : cfg.monitored_chats)
         if (id == chat_id) { monitored = true; break; }
     if (!monitored) {
-        std::cout << "[skip] chat " << chat_id << " not in monitored list\n";
         return false;
     }
 
     auto amount = extract_amount(text);
     if (!amount) {
-        std::cout << "[skip] no amount found in message\n";
         return false;
     }
 
     std::cout << "[check] amount=" << *amount << " limits=[" << cfg.limit_min << "," << cfg.limit_max << "]\n";
 
     if (in_range(*amount, cfg.limit_min, cfg.limit_max)) {
-        std::cout << "[bot] MATCH " << *amount << " in chat " << chat_id << " -> REPLY to msg " << msg_id << "\n";
-        send(chat_id, msg_id, cfg.answer_text);
+        send(chat_id, msg_id, cfg.answer_text);  // SEND FIRST, log after
+        std::cout << "[bot] MATCH " << *amount << " in chat " << chat_id << "\n";
         return true;
     }
     return false;
