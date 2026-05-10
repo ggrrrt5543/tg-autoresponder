@@ -2,5 +2,4 @@ build/
 *.exe
 *.dll
 *.o
-tdlib_session/
 config.json
