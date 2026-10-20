@@ -1,3 +1,5 @@
+<img src="assets/readme-cover.svg" alt="TG Autoresponder — Автоответы в выбранных Telegram-чатах" width="100%">
+
 # TG Autoresponder (C++ / TDLib)
 
 Telegram автоответчик на C++ через TDLib (MTProto). Минимальная задержка ~20-50мс.
@@ -53,3 +55,8 @@ tg-autoresponder.exe
 2. Ищет паттерн "Итого: X USDT" или "Количество: X USDT"
 3. Если X попадает в лимиты — мгновенно отправляет заданный ответ
 4. Polling каждые 10мс — реакция практически real-time
+
+
+---
+
+Maintained by [ggrrrt5543](https://github.com/ggrrrt5543). Инструкции, ограничения и сведения о сторонних компонентах приведены выше.
